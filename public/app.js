@@ -342,8 +342,15 @@ function render() {
     const dx = prev.rect.left - now.left;
     const dy = prev.rect.top - now.top;
     const lane = el.closest('.col') && el.closest('.col').dataset.lane;
-    if (dx || dy) {
-      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: lane !== prev.lane ? 700 : 300, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    if (lane !== prev.lane) {
+      el.style.zIndex = '5';
+      el.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(1)`, boxShadow: 'var(--shadow)' },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 24}px) scale(1.06) rotate(-2deg)`, boxShadow: '0 18px 30px rgba(9,30,66,.28)', offset: 0.45 },
+        { transform: 'none', boxShadow: 'var(--shadow)' },
+      ], { duration: 1100, easing: 'cubic-bezier(.3,.7,.2,1)' }).onfinish = () => { el.style.zIndex = ''; el.classList.add('landed'); setTimeout(() => el.classList.remove('landed'), 1600); };
+    } else if (dx || dy) {
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' });
     }
     if (lane !== prev.lane) { el.classList.add('flash'); requestAnimationFrame(() => setTimeout(() => el.classList.remove('flash'), 60)); }
   });
@@ -381,9 +388,10 @@ function addEvents(list) {
     S.events.push(e);
     if (!S.space || e.repo === S.space) {
       $('#activity').insertAdjacentHTML('afterbegin', evHtml(e, true));
-      if (e.type === 'moved' || e.type === 'created' || (e.type === 'status' && ['done', 'blocked'].includes(e.verb))) toast(e);
+      if (e.type === 'moved' || e.type === 'created' || e.type === 'captain' || (e.type === 'status' && ['done', 'blocked'].includes(e.verb))) toast(e);
     }
   }
+  if (S.view === 'harbor') Harbor.onEvents(list);
   if (S.events.length > 800) S.events = S.events.slice(-800);
   if (S.view === 'log') render();
 }
@@ -400,6 +408,70 @@ function toast(e) {
 }
 
 // ---------- drawer ----------
+function openPanel(html) {
+  $('#drawer').innerHTML = html;
+  $('#drawer').classList.add('open');
+  $('#drawer').setAttribute('aria-hidden', 'false');
+  $('#scrim').classList.add('open');
+  $('#drawer').scrollTop = 0;
+}
+
+// Poll the pane behind any <pre class="term"> in the drawer while it stays open.
+let termTimer = null;
+function startTerminal() {
+  clearInterval(termTimer);
+  const pull = async () => {
+    const pre = $('#drawer.open pre.term[data-pane]');
+    if (!pre) { clearInterval(termTimer); return; }
+    try {
+      const res = await fetch(`/api/pane/${encodeURIComponent(pre.dataset.pane)}/read?lines=80`);
+      const j = await res.json();
+      if (!res.ok) { pre.textContent = j.error || 'Terminal unavailable.'; return; }
+      const atBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
+      pre.textContent = j.text || '(empty)';
+      if (atBottom) pre.scrollTop = pre.scrollHeight;
+    } catch { /* keep the last frame */ }
+  };
+  pull();
+  termTimer = setInterval(pull, 2500);
+}
+
+async function openPhone() {
+  let info = { enabled: false };
+  try { info = await (await fetch('/api/remote')).json(); } catch {}
+  const link = info.lan;
+  openPanel(`<div class="page">
+    <button class="close" data-close aria-label="Close">×</button>
+    <div class="crumbs">FirstFleet / Remote</div>
+    <h1>📱 Watch from your phone</h1>
+    ${link ? `<div class="panel ok">✅ <div><b>Phone access is on.</b> Scan with your phone camera while on the same Wi-Fi. The link carries a private key, so only share it with yourself.</div></div>
+      <div class="qr" id="qr"></div>
+      <p class="mono" style="word-break:break-all">${esc(link)}</p>
+      <p>${info.control ? '🧭 <b>Remote control is on</b>: tap the first mate on your phone to message it.' : '👀 Watch-only. Add <code>--allow-control</code> to message the first mate from your phone.'}</p>
+      <p class="muted">Tip: on your phone, use Share → Add to Home Screen to get a FirstFleet app icon.</p>`
+    : `<div class="panel warn">🔒 <div><b>Phone access is off.</b> FirstFleet only listens on this computer right now.</div></div>
+      <p>Restart it with phone access on:</p>
+      <pre>node server.js --remote                  # watch from your phone (same Wi-Fi)
+node server.js --remote --allow-control  # ...and message your first mate</pre>
+      <p>Then click 📱 again to get a QR code. Every phone request needs the private key in that link.</p>`}
+  </div>`);
+  if (link) {
+    const draw = () => {
+      const q = qrcode(0, 'M');
+      q.addData(link);
+      q.make();
+      document.getElementById('qr').innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+    };
+    if (window.qrcode) draw();
+    else {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+      sc.onload = draw;
+      document.head.appendChild(sc);
+    }
+  }
+}
+
 function md(src) {
   if (!src) return '';
   if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(src));
@@ -422,7 +494,7 @@ async function openTask(id) {
   ].sort((a, b) => (a.at || 0) - (b.at || 0));
   const m = t.meta || {};
   const row = (k, v) => (v ? `<tr><th>${k}</th><td>${v}</td></tr>` : '');
-  $('#drawer').innerHTML = `<div class="page">
+  openPanel(`<div class="page">
     <button class="close" data-close aria-label="Close">×</button>
     <div class="crumbs">${esc(t.repo)} / ${esc(t.epic)} / ${esc(t.key)}</div>
     <h1>${esc(t.title)}</h1>
@@ -440,18 +512,17 @@ async function openTask(id) {
       ${row('Owns', t.card && t.card.owns && t.card.owns.length ? t.card.owns.map((o) => `<code>${esc(o)}</code>`).join(' ') : '')}
       ${row('Card status', t.card ? esc(t.card.status || '') + (t.card.fit ? ` · fit ${esc(t.card.fit)}` : '') : '')}
     </table>
+    ${m.pane && t.lane !== 'done' ? `<h2>🖥️ Live terminal <small class="muted" style="font-weight:400;font-size:13px">what the agent sees right now</small></h2><pre class="term" data-pane="${esc(m.pane)}">Loading…</pre>` : ''}
     ${timeline.length ? `<h2>Timeline</h2><ul class="timeline">${timeline.map((x) => `<li class="${esc(x.cls)}"><div>${x.html}</div><div class="tm">${x.at ? esc(new Date(x.at * 1000).toLocaleString()) : ''}</div></li>`).join('')}</ul>` : ''}
     ${d.cardDoc ? `<h2>Card spec</h2><div class="md">${md(d.cardDoc)}</div>` : ''}
     ${d.report ? `<h2>Report</h2><div class="md">${md(d.report)}</div>` : ''}
     ${d.brief ? `<h2>Crewmate brief</h2><div class="md">${md(d.brief)}</div>` : ''}
     ${d.inbox && d.inbox.length ? `<h2>First mate messages</h2>${d.inbox.slice().reverse().map((x) => `<div class="msg"><div class="tm muted">${x.at ? esc(new Date(x.at * 1000).toLocaleString()) : ''} ${x.handled ? '· handled' : '· <b>unread</b>'}</div>${esc(x.body)}</div>`).join('')}` : ''}
-  </div>`;
-  $('#drawer').classList.add('open');
-  $('#drawer').setAttribute('aria-hidden', 'false');
-  $('#scrim').classList.add('open');
-  $('#drawer').scrollTop = 0;
+  </div>`);
+  startTerminal();
 }
 function closeDrawer() {
+  clearInterval(termTimer);
   S.openTask = null;
   syncHash();
   $('#drawer').classList.remove('open');
@@ -469,11 +540,12 @@ document.addEventListener('click', (ev) => {
   if (btn && btn.dataset.group) { S.group = btn.dataset.group; store.set('group', S.group); return render(); }
   if (btn && btn.dataset.expand) { S.expanded.add(btn.dataset.expand); return render(); }
   if (btn && btn.hasAttribute('data-close')) return closeDrawer();
+  if (btn && btn.id === 'phoneBtn') return openPhone();
   if (t.closest('a')) return;
   const epic = t.closest('[data-epic]');
   if (epic) { const [repo] = epic.dataset.epic.split('::'); S.space = repo; S.group = 'epic'; S.view = 'board'; store.set('space', repo); store.set('group', 'epic'); store.set('view', 'board'); return render(); }
   const item = t.closest('[data-id]');
-  if (item && item.closest('#drawer') == null) openTask(item.dataset.id);
+  if (item && (item.closest('#drawer') == null || item.closest('.roster'))) openTask(item.dataset.id);
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeDrawer();

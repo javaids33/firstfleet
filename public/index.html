@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f5f9c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="FirstFleet" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <title>FirstFleet</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -25,6 +30,7 @@
       <button data-view="log">Fleet log</button>
     </nav>
     <div class="search"><input id="q" type="search" placeholder="Search cards, keys, agents…" autocomplete="off" /></div>
+    <button class="phone-btn" id="phoneBtn" title="Watch from your phone">📱</button>
     <div class="live" id="live"><span class="dot"></span><span id="liveText">Connecting…</span></div>
   </header>
 

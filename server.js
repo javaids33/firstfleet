@@ -7,6 +7,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const crypto = require('node:crypto');
 const { execFile } = require('node:child_process');
 
 const args = process.argv.slice(2);
@@ -14,7 +15,10 @@ const argVal = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1
 
 const FM_HOME = path.resolve(argVal('--home', process.env.FM_HOME || path.join(__dirname, '..', 'firstmate')));
 const PORT = Number(argVal('--port', process.env.PORT || 4777));
-const HOST = argVal('--host', process.env.HOST || '127.0.0.1');
+const REMOTE = args.includes('--remote');
+const CONTROL = args.includes('--allow-control');
+const LEAD_PANE = argVal('--lead-pane', process.env.FF_LEAD_PANE || null);
+const HOST = argVal('--host', process.env.HOST || (REMOTE ? '0.0.0.0' : '127.0.0.1'));
 const TICK_MS = Number(process.env.FF_TICK_MS || 2000);
 const GH_EVERY_MS = Number(process.env.FF_GH_MS || 45000);
 const USE_GH = !args.includes('--no-gh');
@@ -464,6 +468,62 @@ function fleetAgents() {
   }));
 }
 
+// The first mate and the lead (the reviewing session) as named characters.
+function roles() {
+  const fm = herdr.agents.find((a) => a.name === 'firstmate') || herdr.agents.find((a) => real(a.cwd || '') === FM_HOME);
+  const parent = path.dirname(FM_HOME);
+  const lead = LEAD_PANE ? herdr.agents.find((a) => a.pane_id === LEAD_PANE)
+    : herdr.agents.find((a) => a !== fm && real(a.cwd || '') === parent);
+  const pick = (a) => (a ? { pane: a.pane_id, status: a.agent_status, title: a.terminal_title_stripped || null, agent: a.agent } : null);
+  return { firstmate: pick(fm), lead: pick(lead) };
+}
+
+// ---------- phone access on the local network ----------
+function loadToken() {
+  const dir = path.join(os.homedir(), '.config', 'firstfleet');
+  const file = path.join(dir, 'token');
+  const existing = (read(file) || '').trim();
+  if (existing) return existing;
+  const t = crypto.randomBytes(18).toString('base64url');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(file, t + '\n', { mode: 0o600 });
+  return t;
+}
+const TOKEN = REMOTE ? loadToken() : null;
+
+function lanIp() {
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const i of list || []) if (i.family === 'IPv4' && !i.internal) return i.address;
+  }
+  return null;
+}
+
+function remoteLinks() {
+  if (!REMOTE) return { enabled: false, control: CONTROL };
+  const ip = lanIp();
+  return { enabled: true, control: CONTROL, lan: ip ? `http://${ip}:${PORT}/?t=${TOKEN}` : null };
+}
+
+const safeEq = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+function isLocal(req) {
+  const a = req.socket.remoteAddress || '';
+  const loop = a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1';
+  return loop && !req.headers['x-forwarded-for'];
+}
+function authed(req) {
+  if (!REMOTE || isLocal(req)) return true;
+  const m = (req.headers.cookie || '').match(/(?:^|;\s*)ff_token=([^;]+)/);
+  return safeEq(m ? decodeURIComponent(m[1]) : null, TOKEN);
+}
+
+const stripAnsi = (s) => s.replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, '').replace(/\x1b\][^\x07]*\x07/g, '');
+async function readPane(pane, lines) {
+  if (!herdr.agents.some((a) => a.pane_id === pane)) return null;
+  let { stdout } = await run('herdr', ['agent', 'read', pane, '--source', 'recent', '--lines', String(lines)]);
+  if (!stdout.trim()) ({ stdout } = await run('herdr', ['agent', 'read', pane, '--source', 'visible']));
+  return stripAnsi(stdout).replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
 // ---------- SSE ----------
 const clients = new Set();
 function broadcast(type, payload) {
@@ -475,7 +535,8 @@ function snapshot() {
   return {
     home: FM_HOME, lanes: LANES, generated: Date.now(), herdr: { ok: herdr.ok, at: herdr.at },
     tasks: model ? model.tasks : [], epics: model ? model.epics : [], repos: model ? model.repos : [],
-    agents: fleetAgents(),
+    agents: fleetAgents(), roles: roles(),
+    remote: { enabled: REMOTE, control: CONTROL },
   };
 }
 
@@ -531,11 +592,50 @@ function taskDetail(id) {
 }
 
 // ---------- http ----------
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
+const MIME = { '.webmanifest': 'application/manifest+json', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
 
-const server = http.createServer((req, res) => {
+const LOCKED = `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>FirstFleet</title>
+<body style="font:16px system-ui;display:grid;place-items:center;height:100vh;margin:0;background:#0f5f9c;color:#fff;text-align:center">
+<div><div style="font-size:48px">⚓</div><h2>This harbor is private</h2><p>Open FirstFleet on your computer and click 📱 to scan the phone link.</p></div>`;
+
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
-  const json = (obj, code = 200) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
+  const json = (obj, code = 200) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(obj)); };
+
+  if (REMOTE && url.searchParams.has('t') && safeEq(url.searchParams.get('t'), TOKEN)) {
+    res.writeHead(302, { 'set-cookie': `ff_token=${encodeURIComponent(TOKEN)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`, location: '/' });
+    return res.end();
+  }
+  const publicAsset = /^\/(manifest\.webmanifest|favicon\.svg|icon-\d+\.png)$/.test(url.pathname);
+  if (!authed(req) && !publicAsset) {
+    if (url.pathname.startsWith('/api') || url.pathname === '/events') return json({ error: 'locked' }, 401);
+    res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' });
+    return res.end(LOCKED);
+  }
+
+  if (url.pathname === '/api/remote') return isLocal(req) ? json(remoteLinks()) : json({ error: 'local only' }, 403);
+  if (url.pathname.startsWith('/api/pane/')) {
+    const pane = decodeURIComponent(url.pathname.slice('/api/pane/'.length).replace(/\/read$/, ''));
+    const lines = Math.min(200, Math.max(5, Number(url.searchParams.get('lines')) || 60));
+    const text = await readPane(pane, lines);
+    return text == null ? json({ error: 'unknown pane' }, 404) : json({ pane, text, at: Date.now() });
+  }
+  if (url.pathname === '/api/firstmate/prompt' && req.method === 'POST') {
+    if (!CONTROL) return json({ error: 'Start FirstFleet with --allow-control to message the first mate.' }, 403);
+    if (req.headers['x-firstfleet'] !== '1') return json({ error: 'bad request' }, 400);
+    const fm = roles().firstmate;
+    if (!fm) return json({ error: 'No first mate pane found in herdr.' }, 409);
+    let body = '';
+    for await (const chunk of req) { body += chunk; if (body.length > 8000) return json({ error: 'too long' }, 413); }
+    let text = '';
+    try { text = String(JSON.parse(body).text || '').trim(); } catch {}
+    if (!text) return json({ error: 'empty message' }, 400);
+    const r = await run('herdr', ['agent', 'prompt', fm.pane, text]);
+    if (!r.ok) return json({ error: 'herdr refused the prompt (is the first mate blocked?)' }, 502);
+    const ev = pushEvent({ type: 'captain', actor: 'captain', key: 'First mate', repo: null, text, remote: !isLocal(req) });
+    broadcast('events', [ev]);
+    return json({ ok: true });
+  }
 
   if (url.pathname === '/events') {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
@@ -581,6 +681,11 @@ setInterval(tick, TICK_MS);
 tick().then(() => {
   server.listen(PORT, HOST, () => {
     console.log(`[firstfleet] watching ${FM_HOME}`);
-    console.log(`[firstfleet] board at http://${HOST}:${PORT}  (${model.tasks.length} cards, herdr ${herdr.ok ? 'live' : 'off'})`);
+    console.log(`[firstfleet] board at http://127.0.0.1:${PORT}  (${model.tasks.length} cards, herdr ${herdr.ok ? 'live' : 'off'})`);
+    if (REMOTE) {
+      console.log(`[firstfleet] phone link (same Wi-Fi): ${remoteLinks().lan || 'no LAN address found'}`);
+      console.log('[firstfleet] or click 📱 in the desktop UI for a QR code');
+    }
+    if (CONTROL) console.log('[firstfleet] remote control ON: the phone can message your first mate');
   });
 });

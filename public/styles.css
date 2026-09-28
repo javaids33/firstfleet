@@ -268,3 +268,47 @@ code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size:
   .search input { width: 140px; } .apps button { padding: 8px 6px; } .main { padding: 16px; }
   .page { padding: 20px 16px 60px; } .epic { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- shared: rosters, terminal, console, phone ---------- */
+.phone-btn { border: 0; background: var(--surface-sunk); border-radius: 16px; width: 34px; height: 32px; font-size: 16px; }
+.phone-btn:hover { background: var(--surface-hover); }
+.roster { list-style: none; padding: 0; margin: 12px 0; }
+.roster li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.roster li:hover { background: var(--surface-hover); }
+.roster li b { display: block; line-height: 1.3; overflow-wrap: anywhere; }
+.roster li small { color: var(--text-muted); font-size: 12px; }
+.roster li p { margin: 4px 0 0; font-size: 12.5px; color: var(--text-sub); overflow-wrap: anywhere; }
+.roster li .key { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.roster li.arrived { animation: arrived 2.4s ease-out; }
+@keyframes arrived { 0% { background: var(--flash); transform: translateX(-12px); } 30% { transform: none; } 100% { background: transparent; } }
+.roster .mini { width: 44px; height: 32px; display: block; }
+.roster .mini .ship-svg { width: 100%; height: 100%; }
+.roster .mini .hull { fill: #7a4a28; } .roster .mini .jib { fill: #fff8e8; } .roster .mini .mast, .roster .mini .port { fill: #4f2e17; } .roster .mini .stripe { stroke: #f2c14e; stroke-width: 2; }
+.roster .mini .wake { display: none; }
+.roster li .sail.main, .roster li .flag { fill: #b0a8d8; }
+.roster li.crew-claude .sail.main, .roster li.crew-claude .flag { fill: #d97757; }
+.roster li.crew-codex .sail.main, .roster li.crew-codex .flag { fill: #10a37f; }
+.roster li.crew-agy .sail.main, .roster li.crew-agy .flag { fill: #4285f4; }
+.roster li.becalmed .sail.main { fill: #a9b1bd; }
+pre.term { background: #0d1117; color: #d1d7e0; border-radius: 8px; padding: 12px 14px; font: 12px/1.45 "JetBrains Mono", ui-monospace, monospace; max-height: 420px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.talk { background: var(--surface-sunk); border-radius: 10px; padding: 14px; margin: 0 0 20px; display: grid; gap: 10px; }
+.talk label small { display: block; color: var(--text-muted); font-weight: 400; }
+.talk textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font: inherit; background: var(--surface); color: var(--text); resize: vertical; }
+.talk .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.talk .chips button { border: 1px solid var(--border); background: var(--surface); border-radius: 14px; padding: 4px 10px; font-size: 12.5px; }
+.talk-row { display: flex; align-items: center; gap: 10px; }
+.talk-row span { flex: 1; font-size: 13px; }
+.talk .send { border: 0; background: var(--brand); color: #fff; border-radius: 8px; padding: 8px 16px; font-weight: 600; }
+.qr { width: 240px; max-width: 70vw; background: #fff; padding: 8px; border-radius: 10px; margin: 8px 0 12px; }
+.qr svg { width: 100%; height: auto; display: block; }
+.card.landed { animation: landed 1.6s ease-out; }
+@keyframes landed { 0% { box-shadow: 0 0 0 3px var(--brand); } 100% { box-shadow: var(--shadow); } }
+@media (max-width: 760px) {
+  .topnav { gap: 8px; padding: 0 10px; }
+  .brand span, .search { display: none; }
+  .apps { overflow-x: auto; flex: 1; }
+  .apps button { white-space: nowrap; }
+  .apps button.active::after { bottom: -9px; }
+  .live #liveText { display: none; }
+  body.mode-harbor .main { overflow: auto; }
+}
