@@ -1,0 +1,187 @@
+/* Harbor mode. Day scene by default, night scene in dark mode. */
+:root {
+  --sky-top: #8fd3ff; --sky-bot: #d9f1ff;
+  --sea-top: #2c9bd6; --sea-bot: #0f5f9c; --foam: rgba(255, 255, 255, .55);
+  --sand: #f0d9a6; --sand-edge: #d8b877; --dock: #9a6a3f; --dock-dark: #6f4a2a;
+  --hull: #7a4a28; --hull-dark: #4f2e17; --jib: #fff8e8; --stripe: #f2c14e;
+  --plate-bg: rgba(255, 255, 255, .92); --plate-text: #172b4d;
+  --label-bg: rgba(255, 255, 255, .8); --storm: #5b6b7d; --rock: #6f7780;
+  --tower: #f7f3ea; --band: #d94c3d; --beam: rgba(255, 236, 150, .28);
+  --log-bg: #fbf4e2; --log-text: #3b2f1e; --log-line: #e7d9b8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sky-top: #0b1330; --sky-bot: #25355f; --sea-top: #123a5c; --sea-bot: #061c33; --foam: rgba(190, 220, 255, .35);
+    --sand: #6d5a3a; --sand-edge: #54432a; --dock: #5b3f26; --dock-dark: #3d2918; --hull: #5c381e; --hull-dark: #38210f;
+    --jib: #e8e2d2; --plate-bg: rgba(20, 28, 40, .88); --plate-text: #dee4ea; --label-bg: rgba(20, 28, 40, .75);
+    --storm: #2f3a48; --rock: #3c434b; --tower: #d9d4c8; --beam: rgba(255, 230, 140, .22);
+    --log-bg: #22272b; --log-text: #dee4ea; --log-line: #38414a;
+  }
+}
+:root[data-theme="dark"] {
+  --sky-top: #0b1330; --sky-bot: #25355f; --sea-top: #123a5c; --sea-bot: #061c33; --foam: rgba(190, 220, 255, .35);
+  --sand: #6d5a3a; --sand-edge: #54432a; --dock: #5b3f26; --dock-dark: #3d2918; --hull: #5c381e; --hull-dark: #38210f;
+  --jib: #e8e2d2; --plate-bg: rgba(20, 28, 40, .88); --plate-text: #dee4ea; --label-bg: rgba(20, 28, 40, .75);
+  --storm: #2f3a48; --rock: #3c434b; --tower: #d9d4c8; --beam: rgba(255, 230, 140, .22);
+  --log-bg: #22272b; --log-text: #dee4ea; --log-line: #38414a;
+}
+
+/* ---------- layout when harbor is the view ---------- */
+body.mode-harbor .shell { grid-template-columns: minmax(0, 1fr) 340px; }
+body.mode-harbor .sidebar, body.mode-harbor .crumbs, body.mode-harbor .titlebar, body.mode-harbor .stats { display: none; }
+body.mode-harbor .main { padding: 0; overflow: hidden; }
+body.mode-harbor #view { height: 100%; }
+body.mode-harbor .activity { background: var(--log-bg); color: var(--log-text); }
+body.mode-harbor .act-h { border-color: var(--log-line); font-family: Georgia, "Times New Roman", serif; font-size: 17px; }
+body.mode-harbor .ev { grid-template-columns: 26px minmax(0, 1fr); border-bottom: 1px dashed var(--log-line); font-family: Georgia, "Times New Roman", serif; font-size: 14px; }
+body.mode-harbor .ev .txt { color: var(--log-text); -webkit-line-clamp: 4; }
+body.mode-harbor .ev .emoji { font-size: 18px; line-height: 1.2; }
+@media (max-width: 1200px) { body.mode-harbor .shell { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- scene ---------- */
+.harbor { position: relative; width: 100%; height: 100%; min-height: 560px; overflow: hidden; user-select: none; background: var(--sea-bot); }
+.sky { position: absolute; inset: 0 0 78% 0; background: linear-gradient(var(--sky-top), var(--sky-bot)); overflow: hidden; }
+.sun { position: absolute; right: 9%; top: 18%; width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(#fff6c9, #ffd65a 60%, rgba(255, 214, 90, 0) 72%); }
+.stars { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sun { background: radial-gradient(#fdfbf2, #e8e4d6 55%, rgba(232, 228, 214, 0) 70%); width: 48px; height: 48px; } :root:not([data-theme="light"]) .stars { display: block; } }
+:root[data-theme="dark"] .sun { background: radial-gradient(#fdfbf2, #e8e4d6 55%, rgba(232, 228, 214, 0) 70%); width: 48px; height: 48px; }
+:root[data-theme="dark"] .stars { display: block; }
+.stars { position: absolute; inset: 0; background-image: radial-gradient(1.5px 1.5px at 10% 30%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #fff, transparent), radial-gradient(1.5px 1.5px at 55% 25%, #fff, transparent), radial-gradient(1px 1px at 70% 70%, #fff, transparent), radial-gradient(1px 1px at 85% 40%, #fff, transparent), radial-gradient(1px 1px at 45% 80%, #fff, transparent); opacity: .8; }
+.cloud { position: absolute; height: 26px; width: 110px; border-radius: 26px; background: rgba(255, 255, 255, .85); animation: drift 90s linear infinite; }
+.cloud::before, .cloud::after { content: ""; position: absolute; background: inherit; border-radius: 50%; }
+.cloud::before { width: 50px; height: 44px; left: 18px; top: -22px; }
+.cloud::after { width: 38px; height: 34px; left: 56px; top: -14px; }
+.cloud.c1 { top: 45%; left: -10%; }
+.cloud.c2 { top: 25%; left: 30%; transform: scale(.7); animation-duration: 130s; animation-delay: -40s; }
+.cloud.c3 { top: 60%; left: 60%; transform: scale(.85); animation-duration: 110s; animation-delay: -70s; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cloud { background: rgba(120, 140, 180, .35); } }
+:root[data-theme="dark"] .cloud { background: rgba(120, 140, 180, .35); }
+@keyframes drift { from { translate: -20vw 0; } to { translate: 120vw 0; } }
+
+.sea { position: absolute; inset: 22% 0 0 0; background: linear-gradient(var(--sea-top), var(--sea-bot)); overflow: hidden; }
+.waves { position: absolute; left: -200px; right: -200px; height: 100%; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='60'%3E%3Cpath d='M0 30 Q25 20 50 30 T100 30 T150 30 T200 30' fill='none' stroke='white' stroke-opacity='.5' stroke-width='2'/%3E%3C/svg%3E");
+  background-size: 200px 60px; animation: waves 14s linear infinite; }
+.waves.w1 { top: 4%; }
+.waves.w2 { top: 26px; opacity: .3; animation-duration: 22s; animation-direction: reverse; background-size: 260px 80px; }
+.waves.w3 { top: 58px; opacity: .22; animation-duration: 30s; background-size: 320px 100px; }
+@keyframes waves { from { transform: translateX(0); } to { transform: translateX(200px); } }
+
+/* shipyard (left land) */
+.land.yard { position: absolute; left: 0; top: 22%; bottom: 0; width: 21%; background: linear-gradient(90deg, var(--sand) 80%, var(--sand-edge)); clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%); }
+.land.yard::after { content: ""; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, transparent 0 22px, rgba(0, 0, 0, .05) 22px 24px); }
+.crane { position: absolute; left: 20%; top: -110px; width: 6px; height: 130px; background: #e4a11b; }
+.crane::before { content: ""; position: absolute; left: -10px; top: 0; width: 120px; height: 6px; background: #e4a11b; }
+.crane::after { content: ""; position: absolute; left: 88px; top: 6px; width: 2px; height: 40px; background: #555; }
+.ramp { position: absolute; left: 58%; top: 0; bottom: 0; width: 34%; background: repeating-linear-gradient(90deg, var(--dock) 0 10px, var(--dock-dark) 10px 12px); opacity: .45; }
+
+/* harbor (right land + piers) */
+.land.port { position: absolute; right: 0; top: 22%; bottom: 0; width: 23.5%; }
+.town { position: absolute; right: 0; top: -58px; width: 100%; height: 60px;
+  background:
+    linear-gradient(#c65d4a, #c65d4a) 8% 100% / 12% 60% no-repeat,
+    linear-gradient(#e5b85c, #e5b85c) 24% 100% / 10% 85% no-repeat,
+    linear-gradient(#5a8fb8, #5a8fb8) 38% 100% / 14% 50% no-repeat,
+    linear-gradient(#d9d2c3, #d9d2c3) 56% 100% / 9% 95% no-repeat,
+    linear-gradient(#7fa36a, #7fa36a) 70% 100% / 13% 65% no-repeat,
+    linear-gradient(#c65d4a, #c65d4a) 88% 100% / 11% 78% no-repeat; }
+.pier { position: absolute; left: 0; right: 0; height: 10px; background: repeating-linear-gradient(90deg, var(--dock) 0 14px, var(--dock-dark) 14px 16px); box-shadow: 0 3px 0 rgba(0, 0, 0, .15); }
+.pier.p1 { top: 30%; } .pier.p2 { top: 58%; } .pier.p3 { top: 86%; }
+.land.port::before { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 10px; background: var(--dock-dark); }
+
+/* storm over the sea */
+.storm { position: absolute; left: 25%; width: 32%; top: 21%; height: 26%; pointer-events: none; }
+.storm-cloud { position: absolute; left: 5%; right: 5%; top: 0; height: 38%; border-radius: 60px; background: var(--storm); opacity: .92; filter: blur(.5px); }
+.storm-cloud::before, .storm-cloud::after { content: ""; position: absolute; background: inherit; border-radius: 50%; }
+.storm-cloud::before { width: 35%; height: 120%; left: 15%; top: -45%; }
+.storm-cloud::after { width: 28%; height: 100%; left: 50%; top: -30%; }
+.rain { position: absolute; left: 10%; right: 10%; top: 34%; height: 60%; background: repeating-linear-gradient(105deg, rgba(200, 220, 255, .45) 0 2px, transparent 2px 14px); animation: rain .5s linear infinite; mask-image: linear-gradient(#000, transparent); }
+@keyframes rain { from { background-position: 0 0; } to { background-position: -4px 14px; } }
+.bolt { position: absolute; left: 60%; top: 30%; width: 18px; height: 46px; background: #ffe066; clip-path: polygon(40% 0, 100% 0, 60% 45%, 95% 45%, 10% 100%, 35% 55%, 0 55%); opacity: 0; animation: bolt 5s infinite; }
+@keyframes bolt { 0%, 91%, 100% { opacity: 0; } 92%, 94% { opacity: 1; } 93% { opacity: .2; } }
+.harbor.calm .storm { opacity: .25; }
+.harbor.calm .storm .bolt, .harbor.calm .storm .rain { display: none; }
+
+/* lighthouse */
+.rock { position: absolute; left: 62.5%; top: 34%; width: 9%; height: 7%; background: var(--rock); border-radius: 50% 50% 20% 20%; }
+.lighthouse { position: absolute; left: 64.8%; top: 12%; height: 24%; overflow: visible; }
+.lh-tower { fill: var(--tower); stroke: rgba(0, 0, 0, .15); }
+.lh-band { fill: var(--band); }
+.lh-roof { fill: var(--band); }
+.lh-lamp { fill: #ffe38a; }
+.lh-beam { fill: var(--beam); transform-origin: 30px 22px; animation: beam 6s ease-in-out infinite; }
+.lh-beam.b2 { animation-delay: -3s; }
+@keyframes beam { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
+
+/* ---------- labels + hud ---------- */
+.zone-label { position: absolute; display: flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--label-bg); color: var(--plate-text); padding: 4px 10px; border-radius: 16px; font-size: 13px; box-shadow: 0 2px 6px rgba(0, 0, 0, .12); z-index: 5; backdrop-filter: blur(4px); }
+.zone-label .zn { font-weight: 700; font-variant-numeric: tabular-nums; }
+.zone-label small { flex-basis: 100%; font-size: 11px; opacity: .7; margin-top: -2px; padding-left: 22px; }
+.hud { position: absolute; left: 16px; right: 16px; top: 12px; display: flex; align-items: flex-start; gap: 16px; z-index: 6; flex-wrap: wrap; pointer-events: none; }
+.headline { background: var(--label-bg); color: var(--plate-text); border-radius: 12px; padding: 10px 16px; box-shadow: 0 4px 14px rgba(0, 0, 0, .12); backdrop-filter: blur(6px); pointer-events: auto; }
+.headline .h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; letter-spacing: -.01em; }
+.headline .h1 em { font-style: normal; color: var(--brand); }
+.headline .h2 { font-size: 14px; opacity: .85; margin-top: 2px; }
+.headline .warn { color: #e34935; }
+.rowing { width: 10px; height: 10px; border-radius: 50%; background: #22a06b; box-shadow: 0 0 0 0 rgba(34, 160, 107, .6); animation: pulse 2s infinite; }
+.waters { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: auto; }
+.waters button { border: 0; background: var(--label-bg); color: var(--plate-text); padding: 6px 12px; border-radius: 16px; font-size: 13px; box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
+.waters button.on { background: var(--brand); color: #fff; font-weight: 600; }
+.more-ships { position: absolute; z-index: 900; background: var(--label-bg); color: var(--plate-text); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+
+/* ---------- ships ---------- */
+.ships { position: absolute; inset: 0; }
+.ship { position: absolute; left: 0; top: 0; width: 104px; height: 84px; cursor: pointer; transition: transform 4s cubic-bezier(.45, .05, .3, 1), opacity .8s; display: flex; flex-direction: column; align-items: center; }
+.ship .bob { width: 74px; height: 54px; animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 90%; }
+.ship:nth-child(3n) .bob { animation-duration: 3.8s; animation-delay: -1s; }
+.ship:nth-child(3n+1) .bob { animation-duration: 2.9s; animation-delay: -2s; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(3px) rotate(2deg); } }
+.ship-svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .25)); }
+.ship .hull { fill: var(--hull); stroke: var(--hull-dark); stroke-width: 1.2; }
+.ship .stripe { stroke: var(--stripe); stroke-width: 2; }
+.ship .port { fill: var(--hull-dark); }
+.ship .mast { fill: var(--hull-dark); }
+.ship .jib { fill: var(--jib); stroke: rgba(0, 0, 0, .15); }
+.ship .sail.main { fill: var(--sail, #8270db); stroke: rgba(0, 0, 0, .15); transform-origin: 42px 37px; transition: transform .8s; }
+.ship .sail.jib { transform-origin: 38px 37px; transition: transform .8s; }
+.ship .flag { fill: var(--sail, #8270db); animation: flag 1.2s ease-in-out infinite; transform-origin: 40px 3px; }
+@keyframes flag { 50% { transform: scaleX(.8); } }
+.ship .wake { fill: none; stroke: var(--foam); stroke-width: 2.5; stroke-linecap: round; opacity: 0; }
+.crew-claude { --sail: #d97757; } .crew-codex { --sail: #10a37f; } .crew-agy { --sail: #4285f4; } .crew-other, .crew-unassigned { --sail: #b0a8d8; }
+
+/* sails furled when nobody is aboard or the ship is waiting */
+.ship.lane-backlog .sail, .ship.lane-done .sail, .ship.lane-review .sail, .ship.agent-idle .sail, .ship.agent-done .sail { transform: scale(.35, .9); }
+.ship.lane-backlog .bob, .ship.lane-done .bob { animation-duration: 6s; }
+.ship.lane-backlog .hull { fill: #b9a58a; stroke: #8d7a60; }
+.ship.lane-backlog .stripe { stroke: #d8c9ae; }
+.ship.lane-backlog .flag { fill: #b9a58a; }
+.ship.lane-backlog .bob { opacity: .8; }
+.ship.agent-working .wake { opacity: 1; animation: wake 1s linear infinite; stroke-dasharray: 6 5; }
+@keyframes wake { to { stroke-dashoffset: -22; } }
+.ship.lane-blocked .bob { animation: toss 1.4s ease-in-out infinite; }
+@keyframes toss { 0%, 100% { transform: rotate(-9deg) translateY(0); } 50% { transform: rotate(8deg) translateY(4px); } }
+.ship.lane-done .flag { fill: #22a06b; }
+.ship.voyage .bob { animation: sail 1s ease-in-out infinite; }
+.ship.voyage .wake { opacity: 1; stroke-dasharray: 8 4; animation: wake .5s linear infinite; }
+.ship.voyage .sail { transform: none !important; }
+@keyframes sail { 0%, 100% { transform: rotate(-5deg) translateY(-1px); } 50% { transform: rotate(3deg) translateY(2px); } }
+.ship.launching { animation: launch .9s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes launch { from { opacity: 0; scale: .3; } to { opacity: 1; scale: 1; } }
+.ship.sinking { opacity: 0; }
+.ship:hover .plate { background: var(--brand); color: #fff; }
+.ship:hover { z-index: 1000 !important; }
+
+.plate { margin-top: -2px; max-width: 104px; background: var(--plate-bg); color: var(--plate-text); border-radius: 6px; padding: 2px 6px; text-align: center; line-height: 1.2; box-shadow: 0 1px 3px rgba(0, 0, 0, .2); transition: background .2s; }
+.plate b { display: block; font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plate span { display: block; font-size: 10px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bubble { position: absolute; top: -22px; left: 50%; translate: -50% 0; white-space: nowrap; background: #fff; color: #172b4d; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0, 0, 0, .25); opacity: 0; transform: translateY(6px) scale(.8); transition: opacity .3s, transform .3s; pointer-events: none; }
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -5px; translate: -50% 0; border: 5px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.bubble.show { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ship, .ship .bob, .waves, .cloud, .rain, .bolt, .lh-beam, .ship .wake, .ship .flag { animation: none !important; transition: none !important; }
+}
+@media (max-width: 760px) { .zone-label small { display: none; } .headline .h1 { font-size: 16px; } }
+body.mode-harbor .toasts { left: auto; right: 356px; }
+@media (max-width: 1200px) { body.mode-harbor .toasts { right: 16px; } }

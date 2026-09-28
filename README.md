@@ -2,7 +2,7 @@
 
 <h3 align="center">Jira for your agent crew. Watch a <a href="https://github.com/kunchenguid/firstmate">firstmate</a> fleet move cards in real time.</h3>
 
-<p align="center"><img alt="FirstFleet board: a live firstmate fleet porting a Godot game to three.js" src="docs/screenshots/board.png" width="100%" /></p>
+<p align="center"><img alt="FirstFleet Harbor mode: a live firstmate fleet as ships sailing from the shipyard to the harbor" src="docs/screenshots/harbor.png" width="100%" /></p>
 
 ## What it is
 
@@ -15,6 +15,29 @@ It turns them into a board that updates itself as agents work.
 
 It is **read-only**: it never writes to the firstmate home, the projects, or the crew's panes.
 
+## Harbor mode
+
+The default view is for people who just want to watch the build happen, no Jira fluency needed.
+Every card is a ship, and its sail shows who is crewing it: **orange for Claude, green for Codex, blue for Antigravity**.
+
+| Where the ship is | What it means |
+|---|---|
+| 🔨 **Shipyard** | Plans on the lead's board, or queued by the first mate |
+| 🪵 **Slipway** | A crewmate just got its worktree and is boarding |
+| ⛵ **Open sea** | Being built. A foaming wake means the agent is typing right now |
+| 🌩️ **Storm** | Blocked or paused, needs a hand |
+| 🗼 **Lighthouse** | Done and waiting for the lead's inspection (PR open or branch ready) |
+| ⚓ **Fleet harbor** | Merged. Home safe |
+
+When a card changes state, its ship **sails across the water** to the new zone and a bubble says why ("⛵ Set sail!", "🗼 Inspect me", "⚓ Docked!").
+The sidebar becomes a plain-English **captain's log** ("Claude finished “Demand” and opened a pull request").
+Dark mode switches the scene to night.
+Click any ship to open its card page.
+
+<p align="center"><img alt="Harbor mode at night" src="docs/screenshots/harbor-night.png" width="100%" /></p>
+
+When you want the detail, switch to the Board, Backlog, Epics, Fleet, or Fleet log tabs.
+
 ## Features
 
 - **Live board.** Backlog → Selected for Dev → In Development → Blocked → In Review / QA → Done. Cards glide between lanes the moment a crewmate reports, a PR opens, or the lead merges.
@@ -24,14 +47,18 @@ It is **read-only**: it never writes to the firstmate home, the projects, or the
 - **Confluence-style card pages.** Card spec, crewmate brief, scout report, a timeline merging status and inbox, worktree, branch, `owns`, and PR/CI state.
 - **Fleet view.** Every herdr agent pane (first mate, lead, crew) mapped to the card it is working on.
 - **Fleet log.** A day-by-day digest of what happened while you were away.
-- **Deep links.** `#view=board&space=sani-city-three&group=epic&task=s3-fleet` opens a view or card directly. Light and dark themes.
+- **Deep links.** `#view=harbor`, `#view=board&space=sani-city-three&group=epic&task=s3-fleet` opens a view or card directly. Light and dark themes.
 - **Agent-friendly JSON API** in the [axi](https://github.com/kunchenguid/axi) spirit: `GET /api/board`, `GET /api/events?since=<seq>`, `GET /api/task/<id>`, and an SSE stream at `/events`.
 
 ## Screenshots
 
-| Epic swimlanes | Card page |
+| Board | Epic swimlanes |
 |---|---|
-| ![Epic swimlanes](docs/screenshots/swimlanes.png) | ![Card page](docs/screenshots/card-page.png) |
+| ![Board](docs/screenshots/board.png) | ![Epic swimlanes](docs/screenshots/swimlanes.png) |
+
+| Card page | Fleet log |
+|---|---|
+| ![Card page](docs/screenshots/card-page.png) | ![Fleet log](docs/screenshots/fleet-log.png) |
 | **Fleet (herdr panes)** | **Epics** |
 | ![Fleet](docs/screenshots/fleet.png) | ![Epics](docs/screenshots/epics.png) |
 | **Backlog** | **Dark** |

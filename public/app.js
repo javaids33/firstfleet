@@ -10,7 +10,7 @@ const store = {
 const S = {
   board: null,
   events: [],
-  view: store.get('view', 'board'),
+  view: store.get('view', 'harbor'),
   space: store.get('space', null),
   harness: store.get('harness', null),
   group: store.get('group', 'none'),
@@ -302,7 +302,21 @@ function renderStats(tasks) {
 function render() {
   if (!S.board) return;
   S.lanesById = Object.fromEntries(S.board.lanes.map((l) => [l.id, l.name]));
-  const titles = { board: 'Board', backlog: 'Backlog', epics: 'Epics', fleet: 'Fleet', log: 'Fleet log' };
+  const harbor = S.view === 'harbor';
+  const wasHarbor = document.body.classList.contains('mode-harbor');
+  document.body.classList.toggle('mode-harbor', harbor);
+  $('#actTitle').textContent = harbor ? "📜 Captain's log" : 'Activity';
+  if (harbor !== wasHarbor) renderActivity();
+  if (harbor) {
+    document.querySelectorAll('.apps button').forEach((b) => b.classList.toggle('active', b.dataset.view === S.view));
+    syncHash();
+    if (!$('#view .harbor')) $('#view').innerHTML = '';
+    Harbor.update($('#view'));
+    const h = $('#view .harbor');
+    if (h) h.classList.toggle('calm', !visibleTasks().some((t) => t.lane === 'blocked'));
+    return;
+  }
+  const titles = { harbor: 'Harbor', board: 'Board', backlog: 'Backlog', epics: 'Epics', fleet: 'Fleet', log: 'Fleet log' };
   document.querySelectorAll('.apps button').forEach((b) => b.classList.toggle('active', b.dataset.view === S.view));
   $('#title').textContent = titles[S.view];
   $('#crumbs').innerHTML = `Projects / <a href="#">${esc(S.space || 'All spaces')}</a>${S.harness ? ' / ' + esc(CREW_LABEL[S.harness]) : ''}`;
@@ -338,6 +352,11 @@ function render() {
 // ---------- activity ----------
 function evHtml(e, isNew) {
   const crew = crewOf(e.actor);
+  if (S.view === 'harbor') {
+    const [emoji, line] = Harbor.friendly(e);
+    return `<li class="ev${isNew ? ' new' : ''}" data-id="${esc(e.task)}"><span class="emoji">${emoji}</span>
+      <div><div class="txt">${esc(line)}</div><div class="when"><span>${esc(e.repo || '')}</span><span>·</span><span data-at="${e.at || ''}">${esc(ago(e.at))}</span></div></div></li>`;
+  }
   let body = esc(e.text);
   if (e.type === 'moved') body = `moved <b>${esc(e.key)}</b> <span class="lz ${LANE_TONE[e.from]}">${esc(S.lanesById[e.from] || e.from)}</span> <span class="arrow">→</span> <span class="lz ${LANE_TONE[e.to]}">${esc(S.lanesById[e.to] || e.to)}</span>`;
   else if (e.type === 'message') body = `→ <b>${esc(e.key)}</b>: ${esc(e.text)}`;
@@ -372,7 +391,8 @@ function addEvents(list) {
 function toast(e) {
   const el = document.createElement('div');
   el.className = 'toast';
-  el.innerHTML = e.type === 'moved'
+  if (S.view === 'harbor') { const [emoji, line] = Harbor.friendly(e); el.innerHTML = `${emoji} ${esc(line).slice(0, 160)}`; }
+  else el.innerHTML = e.type === 'moved'
     ? `<b>${esc(e.key)}</b> ${esc(S.lanesById[e.from] || e.from)} → <b>${esc(S.lanesById[e.to] || e.to)}</b>`
     : `<b>${esc(e.key)}</b> ${esc(e.text).slice(0, 140)}`;
   $('#toasts').appendChild(el);

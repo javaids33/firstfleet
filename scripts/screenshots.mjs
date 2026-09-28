@@ -14,6 +14,8 @@ mkdirSync(OUT, { recursive: true });
 
 const sp = SPACE ? `&space=${SPACE}` : '';
 const shots = [
+  ['harbor', `view=harbor${sp}`],
+  ['harbor-night', `view=harbor${sp}&theme=dark`],
   ['board', `view=board${sp}`],
   ['swimlanes', `view=board&group=epic${sp}`],
   ['backlog', `view=backlog${sp}`],
@@ -32,7 +34,7 @@ try {
     await page.goto('about:blank');
     await page.goto(`${BASE}/#${hash}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#view > *', { timeout: 15000 });
-    await new Promise((r) => setTimeout(r, name === 'card-page' ? 1500 : 800));
+    await new Promise((r) => setTimeout(r, name === 'card-page' ? 1500 : name.startsWith('harbor') ? 2500 : 800));
     const file = path.join(OUT, `${name}.png`);
     await page.screenshot({ path: file });
     console.log(`  ${file}`);
