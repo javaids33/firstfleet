@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FirstFleet</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topnav">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M4 21h24l-3.5 6h-17z" fill="var(--brand)"/><path d="M15 4v15H6z" fill="var(--brand)" opacity=".55"/><path d="M17 7v12h8z" fill="var(--brand)"/></svg>
+      <span>FirstFleet</span>
+    </div>
+    <nav class="apps" aria-label="Views">
+      <button data-view="board" class="active">Board</button>
+      <button data-view="backlog">Backlog</button>
+      <button data-view="epics">Epics</button>
+      <button data-view="fleet">Fleet</button>
+      <button data-view="log">Fleet log</button>
+    </nav>
+    <div class="search"><input id="q" type="search" placeholder="Search cards, keys, agents…" autocomplete="off" /></div>
+    <div class="live" id="live"><span class="dot"></span><span id="liveText">Connecting…</span></div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="side-h">Spaces</div>
+      <ul id="spaces"></ul>
+      <div class="side-h">Crew</div>
+      <ul id="harnesses"></ul>
+      <div class="side-foot" id="home"></div>
+    </aside>
+
+    <main class="main">
+      <div class="crumbs" id="crumbs"></div>
+      <div class="titlebar">
+        <h1 id="title">Board</h1>
+        <div class="tools" id="tools">
+          <div class="seg" id="groupSeg" role="group" aria-label="Group by">
+            <button data-group="none" class="active">No swimlanes</button>
+            <button data-group="epic">Epic swimlanes</button>
+          </div>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <section id="view"></section>
+    </main>
+
+    <aside class="activity">
+      <div class="act-h"><span>Activity</span><span class="muted" id="actCount"></span></div>
+      <ol id="activity"></ol>
+    </aside>
+  </div>
+
+  <div class="drawer-scrim" id="scrim"></div>
+  <article class="drawer" id="drawer" aria-hidden="true"></article>
+  <div class="toasts" id="toasts"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

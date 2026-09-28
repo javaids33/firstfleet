@@ -1,0 +1,13 @@
+{
+  "name": "firstfleet",
+  "version": "0.1.0",
+  "description": "A live Jira/Confluence-style board for a firstmate agent fleet.",
+  "license": "MIT",
+  "bin": { "firstfleet": "server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "devDependencies": { "puppeteer-core": "^23.0.0" }
+}
